@@ -1,0 +1,28 @@
+Napi::Value MemoryLayouts(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::Object out = Napi::Object::New(env);
+
+  Napi::String strByteOffset = Napi::String::New(env, "byteOffset");
+  Napi::String strByteLength = Napi::String::New(env, "byteLength");
+
+  {% for struct in structs -%}
+  Napi::Object s{{ struct.name }} = Napi::Object::New(env);
+  {% for member in struct.children -%}
+  {
+    Napi::Object obj = Napi::Object::New(env);
+    {% if member.isBitField -%}
+    obj.Set(strByteOffset, Napi::Number::New(env, 666));
+    obj.Set(strByteLength, Napi::Number::New(env, 666));
+    {% else %}
+    obj.Set(strByteOffset, Napi::Number::New(env, offsetof({{ struct.name }}, {{ member.name }})));
+    obj.Set(strByteLength, Napi::Number::New(env, sizeof({{ struct.name }}::{{ member.name }})));
+    {% endif %}
+    s{{ struct.name }}.Set(Napi::String::New(env, "{{ member.name }}"), obj);
+  }
+  {% endfor -%}
+  s{{ struct.name }}.Set(strByteLength, Napi::Number::New(env, sizeof({{ struct.name }})));
+  out.Set(Napi::String::New(env, "{{ struct.name }}"), s{{ struct.name }});
+  {% endfor %}
+
+  return out;
+}

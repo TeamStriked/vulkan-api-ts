@@ -1,0 +1,76 @@
+#ifndef __VK_CALLS_H__
+#define __VK_CALLS_H__
+
+#define NAPI_EXPERIMENTAL
+#include <napi.h>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#include "utils.h"
+
+#include <map>
+#include <string>
+#include <memory>
+
+inline VkStructureType GetStructureTypeFromObject(Napi::Object obj) {
+  if (!obj.Has("sType")) Napi::TypeError::New(obj.Env(), "Failed to resolve structure type, 'sType' property is missing").ThrowAsJavaScriptException();
+  VkStructureType sType = static_cast<VkStructureType>(obj.Get("sType").As<Napi::Number>().Int32Value());
+  return sType;
+};
+
+VkDevice currentDevice = VK_NULL_HANDLE;
+VkInstance currentInstance = VK_NULL_HANDLE;
+
+{{ getCallProcAddrDeclarations(calls) | safe }}
+
+void vkUseDevice(VkDevice pDevice) {
+  currentDevice = pDevice;
+  {{- getCallProcAddrInitializers(calls, "device") | safe }}
+};
+
+void vkUseInstance(VkInstance pInstance) {
+  currentInstance = pInstance;
+  {{- getCallProcAddrInitializers(calls, "instance") | safe }}
+};
+
+Napi::Value _vkUseDevice(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info[0].IsObject()) {
+    Napi::Object obj = info[0].As<Napi::Object>();
+    VkDevice* instance = reinterpret_cast<VkDevice*>(obj.Get("memoryBuffer").As<Napi::ArrayBuffer>().Data());
+    vkUseDevice(*instance);
+  } else if (info[0].IsNull()) {
+    currentDevice = VK_NULL_HANDLE;
+  } else {
+    Napi::TypeError::New(env, "Expected 'VkDevice' or 'null' for argument 1 'pDevice'").ThrowAsJavaScriptException();
+  }
+  return env.Undefined();
+};
+
+Napi::Value _vkUseInstance(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info[0].IsObject()) {
+    Napi::Object obj = info[0].As<Napi::Object>();
+    VkInstance* instance = reinterpret_cast<VkInstance*>(obj.Get("memoryBuffer").As<Napi::ArrayBuffer>().Data());
+    vkUseInstance(*instance);
+  } else if (info[0].IsNull()) {
+    currentInstance = VK_NULL_HANDLE;
+  } else {
+    Napi::TypeError::New(env, "Expected 'VkInstance' or 'null' for argument 1 'pInstance'").ThrowAsJavaScriptException();
+  }
+  return env.Undefined();
+};
+
+{% for call in calls -%}
+
+Napi::Value _{{ call.name }}(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  {{ getCallBody(call) | safe }}
+  {{ getCallObjectUpdate(call) | safe }}
+  {{ getCallReturn(call) | safe }}
+};
+
+{% endfor %}
+
+#endif

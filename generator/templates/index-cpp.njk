@@ -1,0 +1,177 @@
+#define NAPI_EXPERIMENTAL
+#include <napi.h>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+{{ getPlatformRelevantIncludes() | safe }}
+
+#include "calls.h"
+#include "enums.h"
+#include "window.h"
+{% if includeMemoryLayouts == true %}
+#include "memoryLayouts.h"
+{% endif %}
+
+class CallbackProxy : public Napi::ObjectWrap<CallbackProxy> {
+  public:
+    static Napi::Object Initialize(Napi::Env env, Napi::Object exports);
+    static Napi::FunctionReference constructor;
+    CallbackProxy(const Napi::CallbackInfo &info);
+    ~CallbackProxy();
+
+    Napi::Value getAddress(const Napi::CallbackInfo &info);
+    Napi::FunctionReference callback;
+    Napi::ObjectReference module;
+};
+
+Napi::FunctionReference CallbackProxy::constructor;
+
+// constructor
+CallbackProxy::CallbackProxy(const Napi::CallbackInfo& info) : Napi::ObjectWrap<CallbackProxy>(info) {
+  this->callback.Reset(info[0].As<Napi::Function>(), 1);
+  this->module.Reset(info[1].As<Napi::Object>(), 1);
+}
+
+// destructor
+CallbackProxy::~CallbackProxy() {
+  this->callback.Reset();
+  this->module.Reset();
+}
+
+Napi::Value CallbackProxy::getAddress(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  uint64_t address = reinterpret_cast<uint64_t>(this);
+  return Napi::BigInt::New(env, address);
+}
+
+Napi::Object CallbackProxy::Initialize(Napi::Env env, Napi::Object exports) {
+  Napi::HandleScope scope(env);
+  Napi::Function func = DefineClass(env, "CallbackProxy", {
+    InstanceMethod(
+      "getAddress",
+      &CallbackProxy::getAddress,
+      napi_enumerable
+    )
+  });
+  constructor = Napi::Persistent(func);
+  constructor.SuppressDestruct();
+  exports.Set("$CallbackProxy", func);
+  return exports;
+}
+
+{% for func in functionPointers -%}
+static VKAPI_ATTR {{ func.text }} VKAPI_CALL CB_{{ func.name }}(
+  {% for param in func.params -%}
+  {{ param.text }}{% if loop.index <= loop.length - 1 %},{% endif %}
+  {% endfor -%}
+) {
+  CallbackProxy* proxy = reinterpret_cast<CallbackProxy*>(pUserData);
+  Napi::Function callback = proxy->callback.Value().As<Napi::Function>();
+  Napi::Env env = callback.Env();
+  std::vector<napi_value> args = {};
+  {{ processCallbackParameters(func) | safe }}
+  Napi::Value ret = callback.Call(args);
+  {{ processCallbackReturn(func) | safe }}
+};
+
+{% endfor -%}
+
+static Napi::Value getAddressFromArrayBuffer(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsArrayBuffer())) {
+    Napi::TypeError::New(env, "Argument 1 must be of type 'ArrayBuffer'").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
+  Napi::ArrayBuffer buffer = info[0].As<Napi::ArrayBuffer>();
+  int64_t addr = reinterpret_cast<int64_t>(buffer.Data());
+  return Napi::BigInt::New(env, addr);
+};
+
+static Napi::Value getArrayBufferFromAddress(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsBigInt())) {
+    Napi::TypeError::New(env, "Argument 1 must be of type 'BigInt'").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
+  if (!(info[1].IsBigInt())) {
+    Napi::TypeError::New(env, "Argument 2 must be of type 'BigInt'").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
+  bool lossless0;
+  int64_t addr = info[0].As<Napi::BigInt>().Int64Value(&lossless0);
+  bool lossless1;
+  int64_t size = info[1].As<Napi::BigInt>().Int64Value(&lossless1);
+  Napi::ArrayBuffer buffer = Napi::ArrayBuffer::New(
+    env,
+    reinterpret_cast<void *>(addr),
+    size
+  );
+  return buffer;
+};
+
+static Napi::Value _VK_MAKE_VERSION(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsNumber())) Napi::TypeError::New(env, "Argument 1 must be of type 'Number'").ThrowAsJavaScriptException();
+  if (!(info[1].IsNumber())) Napi::TypeError::New(env, "Argument 2 must be of type 'Number'").ThrowAsJavaScriptException();
+  if (!(info[2].IsNumber())) Napi::TypeError::New(env, "Argument 3 must be of type 'Number'").ThrowAsJavaScriptException();
+  uint32_t major = info[0].As<Napi::Number>().Uint32Value();
+  uint32_t minor = info[1].As<Napi::Number>().Uint32Value();
+  uint32_t patch = info[2].As<Napi::Number>().Uint32Value();
+  return Napi::Number::New(env, VK_MAKE_VERSION(major, minor, patch));
+};
+
+static Napi::Value _VK_VERSION_MAJOR(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsNumber())) Napi::TypeError::New(env, "Argument 1 must be of type 'Number'").ThrowAsJavaScriptException();
+  uint32_t version = info[0].As<Napi::Number>().Uint32Value();
+  return Napi::Number::New(env, (uint32_t)(version) >> 22);
+};
+
+static Napi::Value _VK_VERSION_MINOR(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsNumber())) Napi::TypeError::New(env, "Argument 1 must be of type 'Number'").ThrowAsJavaScriptException();
+  uint32_t version = info[0].As<Napi::Number>().Uint32Value();
+  return Napi::Number::New(env, ((uint32_t)(version) >> 12) & 0x3ff);
+};
+
+static Napi::Value _VK_VERSION_PATCH(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsNumber())) Napi::TypeError::New(env, "Argument 1 must be of type 'Number'").ThrowAsJavaScriptException();
+  uint32_t version = info[0].As<Napi::Number>().Uint32Value();
+  return Napi::Number::New(env, (uint32_t)(version) & 0xfff);
+};
+
+Napi::Object Init(Napi::Env env, Napi::Object exports) {
+  VulkanWindow::Initialize(env, exports);
+  CallbackProxy::Initialize(env, exports);
+  exports["VK_MAKE_VERSION"] = Napi::Function::New(env, _VK_MAKE_VERSION, "VK_MAKE_VERSION");
+  exports["VK_VERSION_MAJOR"] = Napi::Function::New(env, _VK_VERSION_MAJOR, "VK_VERSION_MAJOR");
+  exports["VK_VERSION_MINOR"] = Napi::Function::New(env, _VK_VERSION_MINOR, "VK_VERSION_MINOR");
+  exports["VK_VERSION_PATCH"] = Napi::Function::New(env, _VK_VERSION_PATCH, "VK_VERSION_PATCH");
+  exports["VK_API_VERSION_1_0"] = Napi::Number::New(env, VK_MAKE_VERSION(1, 0, 0));
+  exports["VK_API_VERSION_1_1"] = Napi::Number::New(env, VK_MAKE_VERSION(1, 1, 0));
+  exports["VK_API_VERSION_1_2"] = Napi::Number::New(env, VK_MAKE_VERSION(1, 2, 0));
+  exports["vkUseDevice"] = Napi::Function::New(env, _vkUseDevice, "vkUseDevice");
+  exports["vkUseInstance"] = Napi::Function::New(env, _vkUseInstance, "vkUseInstance");
+  exports["getAddressFromArrayBuffer"] = Napi::Function::New(env, getAddressFromArrayBuffer, "getAddressFromArrayBuffer");
+  exports["getArrayBufferFromAddress"] = Napi::Function::New(env, getArrayBufferFromAddress, "getArrayBufferFromAddress");
+  {% if includeMemoryLayouts == true %}
+  exports["$getMemoryLayouts"] = Napi::Function::New(env, MemoryLayouts, "MemoryLayouts");
+  {% endif %}
+  exports["$getVulkanEnumerations"] = Napi::Function::New(env, getVulkanEnumerations, "getVulkanEnumerations");
+  {
+    Napi::Object obj = Napi::Object::New(env);
+    {% for func in functionPointers -%}
+    obj.Set("{{ func.name }}", Napi::BigInt::New(env, reinterpret_cast<uint64_t>(&CB_{{ func.name }})));
+    {% endfor %}
+    exports["$vulkanCallbackFunctionPointers"] = obj;
+  }
+  // calls
+  {% for call in calls -%}
+  exports["{{ call.name }}"] = Napi::Function::New(env, _{{ call.name }}, "{{ call.name }}");
+  {% endfor %}
+  return exports;
+}
+
+NODE_API_MODULE(addon, Init)

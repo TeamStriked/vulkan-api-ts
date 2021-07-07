@@ -1,0 +1,25 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2015
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "action_after_build", "action_after_build.vcxproj", "{FAD0B56F-23D3-3C3E-AD8B-153325F9A5B3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "addon-win32", "addon-win32.vcxproj", "{E0887D28-8E32-F234-9FB9-AEA92466ED53}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E0887D28-8E32-F234-9FB9-AEA92466ED53}.Debug|x64.ActiveCfg = Debug|x64
+		{E0887D28-8E32-F234-9FB9-AEA92466ED53}.Debug|x64.Build.0 = Debug|x64
+		{E0887D28-8E32-F234-9FB9-AEA92466ED53}.Release|x64.ActiveCfg = Release|x64
+		{E0887D28-8E32-F234-9FB9-AEA92466ED53}.Release|x64.Build.0 = Release|x64
+		{FAD0B56F-23D3-3C3E-AD8B-153325F9A5B3}.Debug|x64.ActiveCfg = Debug|x64
+		{FAD0B56F-23D3-3C3E-AD8B-153325F9A5B3}.Debug|x64.Build.0 = Debug|x64
+		{FAD0B56F-23D3-3C3E-AD8B-153325F9A5B3}.Release|x64.ActiveCfg = Release|x64
+		{FAD0B56F-23D3-3C3E-AD8B-153325F9A5B3}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

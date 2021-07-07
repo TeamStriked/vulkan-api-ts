@@ -1,0 +1,167 @@
+"use strict";
+
+const {platform} = process;
+const vulkanApi = require("./build/Release/addon-" + platform + ".node");
+
+let ENABLE_SHARED_MEMORY_HINTS = !!process.env.npm_config_enable_shared_memory_hints;
+if (!ENABLE_SHARED_MEMORY_HINTS) {
+  process.argv.map(arg => {
+    if (arg.match("enable-shared-memory-hints")) ENABLE_SHARED_MEMORY_HINTS = true;
+  });
+}
+
+if (typeof BigInt === "undefined") {
+  throw new ReferenceError(`BigInt Type is not available on your platform!`);
+}
+
+const BI0 = BigInt(0);
+const BI4 = BigInt(4);
+const BI8 = BigInt(8);
+const NULLT = String.fromCharCode(0x0);
+const VK_ENUMERATIONS = vulkanApi.$getVulkanEnumerations();
+
+const getAddressFromArrayBuffer = vulkanApi.getAddressFromArrayBuffer;
+const getArrayBufferFromAddress = vulkanApi.getArrayBufferFromAddress;
+
+global.ArrayBuffer.prototype.getAddress = function() {
+  return getAddressFromArrayBuffer(this);
+};
+
+global.ArrayBuffer.fromAddress = function(address, byteLength) {
+  return getArrayBufferFromAddress(address, BigInt(byteLength));
+};
+
+global.BigInt.prototype.dereference = function() {
+  return new BigUint64Array(ArrayBuffer.fromAddress(this, BI8))[0];
+};
+
+const textEncoder = new (typeof TextEncoder === "undefined" ? require("util").TextEncoder : TextEncoder);
+const textDecoder = new (typeof TextDecoder === "undefined" ? require("util").TextDecoder : TextDecoder);
+
+function getStructFromStack(byteOffset, ctor, cache) {
+  if (cache[byteOffset] === void 0) {
+    let stackAllocated = new ctor();
+    cache[byteOffset] = stackAllocated;
+    return stackAllocated;
+  }
+  let stackAllocated = cache[byteOffset];
+  return stackAllocated;
+};
+
+function decodeNullTerminatedUTF8String(view) {
+  let terminator = view.indexOf(0x0);
+  let subview = view.subarray(0, terminator > -1 ? terminator : view.length);
+  return textDecoder.decode(subview);
+};
+
+function findNullTerminatedUTF8StringLength(addr) {
+  let limit = 2 << 12; 
+  // read 4 bytes on each iteration
+  for (let ii = 0; ii < limit; ii += 4) {
+    let chunk = getArrayBufferFromAddress(addr + BigInt(ii), BI4);
+    let chunkU8 = new Uint8Array(chunk);
+    if (chunkU8[0x0] === 0) return ii + 0x1 + 0x0;
+    if (chunkU8[0x1] === 0) return ii + 0x1 + 0x1;
+    if (chunkU8[0x2] === 0) return ii + 0x1 + 0x2;
+    if (chunkU8[0x3] === 0) return ii + 0x1 + 0x3;
+  };
+  throw new ReferenceError(`Failed to find UTF8 String length - Memory is either corrupted, misses a NULL terminator or exceeds the Limit of '${limit}' bytes`);
+  return -1;
+};
+
+function decodeNativeArrayOfObjects(addr, length, ctor) {
+  let out = [];
+  let byteLength = BigInt(ctor.byteLength);
+  for (let ii = 0; ii < length; ++ii) {
+    let buffer = getArrayBufferFromAddress(
+      addr + BigInt(ii) * byteLength,
+      byteLength
+    );
+    let item = new ctor({
+      $memoryBuffer: buffer,
+      $memoryOffset: 0
+    });
+    out.push(item);
+  };
+  return out;
+};
+
+function typeToString(value) {
+  return ((value === void 0 || value === null) ? String(value) : value.constructor.name);
+};
+
+function ASSERT_IS_STRING(value, name) {
+  if (typeof value !== "string") {
+    throw new TypeError(`Invalid type for '${name}': Expected 'String' but got '" + typeToString(value) + "'`);
+  }
+}
+
+function ASSERT_IS_NUMBER(value, name) {
+  if (typeof value !== "number") {
+    throw new TypeError(`Invalid type for '${name}': Expected 'Number' but got '" + typeToString(value) + "'`);
+  }
+};
+
+function ASSERT_IS_NUMBER_OR_BIGINT(value, name) {
+  if (typeof value !== "bigint" && typeof value !== "number") {
+    throw new TypeError(`Invalid type for '${name}': Expected 'BigInt' or 'Number' but got '" + typeToString(value) + "'`);
+  }
+};
+
+class NativeStringArray {
+  constructor(array) {
+    this.array = array;
+    this.address = BI0;
+    let stringBuffers = [];
+    let addressView = new BigInt64Array(array.length);
+    let addressBuffer = addressView.buffer;
+    let addressBufferAddress = getAddressFromArrayBuffer(addressBuffer);
+    for (let ii = 0; ii < array.length; ++ii) {
+      let strBuffer = textEncoder.encode(array[ii] + NULLT).buffer;
+      addressView[ii] = getAddressFromArrayBuffer(strBuffer);
+      stringBuffers.push(strBuffer);
+    };
+    this.address = addressBufferAddress;
+    // keep references to prevent deallocation
+    this.addressBuffer = addressBuffer;
+    this.stringBuffers = stringBuffers;
+  }
+};
+
+class NativeObjectArray {
+  constructor(array) {
+    this.array = array;
+    this.address = BI0;
+    let byteStride = array[0].memoryBuffer.byteLength;
+    let objectBuffer = new ArrayBuffer(array.length * byteStride);
+    let objectBufferView = new Uint8Array(objectBuffer);
+    let objectBufferAddress = getAddressFromArrayBuffer(objectBuffer);
+    for (let ii = 0; ii < array.length; ++ii) {
+      let byteOffset = ii * byteStride;
+      let srcView = new Uint8Array(array[ii].memoryBuffer);
+      let dstView = objectBufferView.subarray(byteOffset, byteOffset + byteStride);
+      dstView.set(srcView, 0x0);
+    };
+    this.address = objectBufferAddress;
+    // keep reference to prevent deallocation
+    this.objectBuffer = objectBuffer;
+  }
+};
+
+class NativeObjectReferenceArray {
+  constructor(array) {
+    this.array = array;
+    this.address = BI0;
+    let addressView = new BigInt64Array(array.length);
+    let addressBuffer = addressView.buffer;
+    let addressBufferAddress = getAddressFromArrayBuffer(addressBuffer);
+    for (let ii = 0; ii < array.length; ++ii) {
+      let object = array[ii];
+      let objectAddress = object.address;
+      addressView[ii] = objectAddress;
+    };
+    this.address = addressBufferAddress;
+    // keep reference to prevent deallocation
+    this.addressBuffer = addressBuffer;
+  }
+};

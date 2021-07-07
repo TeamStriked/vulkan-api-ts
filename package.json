@@ -1,0 +1,72 @@
+{
+  "name": "vulkan-api",
+  "main": "index.js",
+  "version": "0.8.8",
+  "engines": {
+    "node": ">= 16.4.0"
+  },
+  "config": {
+    "OUTDATED": [],
+    "GEN_OUT_DIR": "./generated",
+    "SPEC_DIR": "./generator/specifications",
+    "TEMPLATE_DIR": "./generator/templates",
+    "POST_DEFAULT_BINDING_VERSION": "1.2.162",
+    "TS_ROOT": "../../../index",
+    "INTERFACE_ROOT": "../../../index",
+    "DOCS_DIR": "./docs",
+    "MAC_ICD_PATH": "Contents/Resources/vulkan/icd.d/MoltenVK_icd.json",
+    "LINK_MDN_GOBJECTS": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects",
+    "DISCORD_SERVER_INVITE_LINK": "https://discord.gg/86Z3cGe"
+  },
+  "scripts": {
+    "build": "node ./build.js",
+    "generate": "node --experimental-modules --experimental-json-modules ./generator/index.mjs",
+    "release": "node ./make-release.js",
+    "all": "npm run generate --docs & npm run build & npm run release",
+    "pack": "npm pack --dry-run",
+    "publish": "npm init & npm publish "
+  },
+  "devDependencies": {
+    "ncp": "^2.0.0",
+    "node-addon-api": "^4.0.0",
+    "nunjucks": "^3.2.3",
+    "terser": "^3.2.2",
+    "toposort": "^2.0.2",
+    "xml-js": "^1.6.11",
+    "yauzl": "^2.10.0"
+  },
+  "description": "Vulkan API for JavaScript/TypeScript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sboron/vulkan-api-ts.git"
+  },
+  "keywords": [
+    "vulkan",
+    "gpgpu",
+    "compute",
+    "graphics"
+  ],
+  "author": "Felix Maier & S. Boronczyk",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sboron/vulkan-api-ts/issues"
+  },
+  "homepage": "https://github.com/sboron/vulkan-api-ts#readme",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "lib": "lib"
+  },
+  "dependencies": {
+    "a-sync-waterfall": "^1.0.1",
+    "asap": "^2.0.6",
+    "buffer-crc32": "^0.2.13",
+    "buffer-from": "^1.1.1",
+    "commander": "^8.0.0",
+    "fd-slicer": "^1.1.0",
+    "pend": "^1.2.0",
+    "sax": "^1.2.4",
+    "source-map": "^0.7.3",
+    "source-map-support": "^0.5.19"
+  }
+}

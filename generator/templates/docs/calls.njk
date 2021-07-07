@@ -1,0 +1,42 @@
+{{ getHeaderHTML() | safe }}
+
+<vk-title>{{ call.name }} | NVK</vk-title>
+
+<vk-centered>
+
+  {{ getNavigationHTML() | safe }}
+
+  <vk-struct>
+
+    <vk-name>{{ call.name }}</vk-name>
+
+    <vk-description>{{ getObjectDescription(call) | safe }}</vk-description>
+
+    <vk-section-title>Syntax</vk-section-title>
+    <vk-syntax>
+      <pre><code class="language-js">{{ getCallReturnType(call) | safe }} {{ call.name }}();
+</code></pre>
+    </vk-syntax>
+
+    <vk-section-title>Parameters</vk-section-title>
+
+    <vk-properties>
+      {% for param in params -%}
+      <vk-property-entry>
+        <vk-property-parameter>{{ param.name }}</vk-property-parameter>
+        <vk-property-type type="{{ getCSSType(param) | safe }}">{{ getType(param) | safe }}</vk-property-type>
+        <vk-property-description>{{ getObjectDescription(param) | safe }}</vk-property-description>
+      </vk-property-entry>
+      {% endfor %}
+    </vk-properties>
+
+  </vk-struct>
+
+</vk-centered>
+
+<script>
+const IS_ROOT = false;
+</script>
+
+<script type="text/javascript" src="../../assets/js/prism.min.js"></script>
+<script type="text/javascript" src="../../assets/js/index.js"></script>

@@ -1,0 +1,32 @@
+#ifndef __DYN_UNWRAP__
+#define __DYN_UNWRAP__
+
+#define NAPI_EXPERIMENTAL
+#include <napi.h>
+#include "source.h"
+
+#include <map>
+#include <string>
+
+inline VkStructureType GetStructureTypeFromObject(Napi::Object obj) {
+  if (!obj.Has("sType")) Napi::TypeError::New(obj.Env(), "Failed to resolve structure type, 'sType' property is missing").ThrowAsJavaScriptException();
+  VkStructureType sType = static_cast<VkStructureType>(obj.Get("sType").As<Napi::Number>().Int32Value());
+  return sType;
+}
+
+int GetStructureByteSize(Napi::Object obj) {
+  VkStructureType sType = GetStructureTypeFromObject(obj);
+  switch (sType) {
+    {% for struct in structs -%}
+    {%- if struct.sType and not struct.alias -%}
+    case {{ struct.sType }}: return sizeof({{ struct.name }});
+    {% endif -%}
+    {% endfor %}
+  };
+  std::string constructorName = obj.Get("constructor").As<Napi::Object>().Get("name").As<Napi::String>().Utf8Value();
+  std::string msg = "Cannot resolve structure byteSize! Invalid constructor: '" + constructorName + "'";
+  Napi::TypeError::New(obj.Env(), msg).ThrowAsJavaScriptException();
+  return -1;
+}
+
+#endif
