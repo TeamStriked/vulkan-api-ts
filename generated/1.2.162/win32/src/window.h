@@ -48,6 +48,7 @@ class VulkanWindow : public Napi::ObjectWrap<VulkanWindow> {
     Napi::Value exitPointerLock(const Napi::CallbackInfo &info);
     Napi::Value shouldClose(const Napi::CallbackInfo &info);
     Napi::Value createSurface(const Napi::CallbackInfo &info);
+    Napi::Value getTime(const Napi::CallbackInfo &info);
     Napi::Value getRequiredInstanceExtensions(const Napi::CallbackInfo &info);
     Napi::Value getWindowHandle(const Napi::CallbackInfo &info);
 
@@ -150,6 +151,11 @@ Napi::Object VulkanWindow::Initialize(Napi::Env env, Napi::Object exports) {
     InstanceMethod(
       "createSurface",
       &VulkanWindow::createSurface,
+      napi_enumerable
+    ),
+    InstanceMethod(
+      "getTime",
+      &VulkanWindow::getTime,
       napi_enumerable
     ),
     InstanceMethod(
@@ -493,6 +499,13 @@ Napi::Value VulkanWindow::pollEvents(const Napi::CallbackInfo& info) {
     glfwPollEvents();
   }
   return env.Undefined();
+}
+
+Napi::Value VulkanWindow::getTime(const Napi::CallbackInfo& info)
+{
+  Napi::Env env = info.Env();
+  double currentTime = glfwGetTime();
+  return Napi::Number::New(env, currentTime);
 }
 
 Napi::Value VulkanWindow::createSurface(const Napi::CallbackInfo& info) {
