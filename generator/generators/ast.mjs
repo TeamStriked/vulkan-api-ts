@@ -548,6 +548,8 @@ function parseTypeElement(child) {
     type = out.type;
     out.isBitmaskType = true;
   }
+
+
   // note: manual type overwrite!
   if (isEnumType) {
     //out.isEnumType = true;

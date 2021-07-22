@@ -36,8 +36,35 @@ function getEnumNapiValue(enu) {
   }
 };
 
-export default function(astReference, enums) {
+const findDuplicates = (arr) => {
+  let sorted_arr = arr.slice().sort(); // You can define the comparing function here. 
+  // JS by default uses a crappy string compare.
+  // (we use slice to clone the array so the
+  // original array won't be modified)
+  let results = [];
+  for (let i = 0; i < sorted_arr.length - 1; i++) {
+    if (sorted_arr[i + 1] == sorted_arr[i]) {
+      results.push(sorted_arr[i]);
+    }
+  }
+  return results;
+}
+
+
+export default function (astReference, enums) {
   ast = astReference;
+
+
+
+  for (let num of enums) {
+    for (let val of num.children) {
+      if(val.name == "VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES_KHR")
+      {
+        console.log(val);
+      }
+    }
+  }
+
   let vars = {
     enums,
     getEnumType,

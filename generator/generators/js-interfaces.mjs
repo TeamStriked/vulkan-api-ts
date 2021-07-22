@@ -480,7 +480,9 @@ function getSetterProcessor(member) {
       // validate enum boundings
       if (validate && enumLayouts && member.enumType) {
         let enumObject = enumLayouts[member.enumType];
-        if (!enumObject) warn(`Cannot resolve bounding check enum for ${currentStruct.name}.${member.name}`);
+        if (!enumObject){
+          warn(`Cannot resolve bounding check enum for ${currentStruct.name}.${member.name} => ${member.enumType}`);
+        }
         else {
           out += `
     if (!$VAL_R_${member.enumType}(value)) {

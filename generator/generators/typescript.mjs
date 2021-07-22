@@ -210,6 +210,8 @@ function processFunctionPointerReturn(functionPtr) {
   switch (type) {
     case "void":
       return `void`;
+      case "void *":
+        return `void`;
     case "int8_t":
     case "int16_t":
     case "int32_t":
