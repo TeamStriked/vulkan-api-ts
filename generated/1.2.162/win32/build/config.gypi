@@ -86,7 +86,7 @@
     "msbuild_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe",
     "cache": "C:\\Users\\Highclickers\\AppData\\Local\\npm-cache",
     "disable_minification": "true",
-    "docs": "true",
+    "disable_validation_checks": "true",
     "globalconfig": "C:\\Users\\Highclickers\\AppData\\Roaming\\npm\\etc\\npmrc",
     "init_module": "C:\\Users\\Highclickers\\.npm-init.js",
     "metrics_registry": "https://registry.npmjs.org/",

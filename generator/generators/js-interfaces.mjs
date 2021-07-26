@@ -941,6 +941,8 @@ export default function(astReference, includeValidations, disableMinification, c
   output += `\nmodule.exports = {\n`;
   // add c++ stuff
   output += `  ...VK_ENUMERATIONS,\n`;
+  output += `  getArrayBufferFromAddress: vulkanApi.getArrayBufferFromAddress,\n`;
+  output += `  memoryWrite: vulkanApi.memoryWrite,\n`;
   output += `  VK_MAKE_VERSION: vulkanApi.VK_MAKE_VERSION,\n`;
   output += `  VK_VERSION_MAJOR: vulkanApi.VK_VERSION_MAJOR,\n`;
   output += `  VK_VERSION_MINOR: vulkanApi.VK_VERSION_MINOR,\n`;

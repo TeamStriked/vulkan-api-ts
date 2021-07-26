@@ -77,6 +77,25 @@ static VKAPI_ATTR {{ func.text }} VKAPI_CALL CB_{{ func.name }}(
 
 {% endfor -%}
 
+static void memoryWrite(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (!(info[0].IsBigInt())) {
+    Napi::TypeError::New(env, "Argument 1 must be of type 'BigInt'").ThrowAsJavaScriptException();
+    return ;
+  }
+  if (!(info[1].IsTypedArray())) {
+    Napi::TypeError::New(env, "Argument 2 must be of type 'IsTypedArray'").ThrowAsJavaScriptException();
+    return ;
+  }
+
+  bool lossless0;
+  int64_t addr = info[0].As<Napi::BigInt>().Int64Value(&lossless0);
+  void *i = (void *) addr;
+
+  Napi::Uint8Array array = info[1].As<Napi::Uint8Array>();
+  memcpy(i, array.Data(), array.ByteLength());
+};
+
 static Napi::Value getAddressFromArrayBuffer(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   if (!(info[0].IsArrayBuffer())) {
@@ -156,6 +175,9 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
   exports["vkUseInstance"] = Napi::Function::New(env, _vkUseInstance, "vkUseInstance");
   exports["getAddressFromArrayBuffer"] = Napi::Function::New(env, getAddressFromArrayBuffer, "getAddressFromArrayBuffer");
   exports["getArrayBufferFromAddress"] = Napi::Function::New(env, getArrayBufferFromAddress, "getArrayBufferFromAddress");
+  exports["memoryWrite"] = Napi::Function::New(env, memoryWrite, "memoryWrite");
+
+  
   {% if includeMemoryLayouts == true %}
   exports["$getMemoryLayouts"] = Napi::Function::New(env, MemoryLayouts, "MemoryLayouts");
   {% endif %}

@@ -1,7 +1,7 @@
 {
   "name": "vulkan-api",
   "main": "index.js",
-  "version": "0.9.0",
+  "version": "0.9.3",
   "engines": {
     "node": ">= 16.4.0"
   },
@@ -18,13 +18,15 @@
     "LINK_MDN_GOBJECTS": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects",
     "DISCORD_SERVER_INVITE_LINK": "https://discord.gg/86Z3cGe"
   },
+  "types": "./generated/1.2.162/win32/index.d.ts",
   "scripts": {
     "build": "node ./build.js",
     "generate": "node --experimental-modules --experimental-json-modules ./generator/index.mjs",
     "release": "node ./make-release.js",
     "all": "npm run generate --docs & npm run build & npm run release",
     "pack": "npm pack --dry-run",
-    "publish": "npm init & npm publish "
+    "publish": "npm init & npm publish ",
+    "postinstall": "node postInstall.js"
   },
   "devDependencies": {
     "ncp": "^2.0.0",

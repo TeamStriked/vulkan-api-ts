@@ -5,6 +5,9 @@ export interface ObjectConstructor {
   assign(...objects: Object[]): Object;
 }
 
+export function memoryWrite (pointer: BigInt, data: Uint8Array): void;
+export function getArrayBufferFromAddress (t: BigInt, length: BigInt): ArrayBuffer;
+
 export const BI0 = BigInt(0);
 export const BI4 = BigInt(4);
 export const BI8 = BigInt(8);
@@ -212,6 +215,9 @@ declare var VulkanWindow: {
   onmousedown: ((ev: MousedownEvent) => any) | null;
   onmouseup: ((ev: MouseupEvent) => any) | null;
   ondrop: ((ev: DropEvent) => any) | null;
+
+  enterPointerLock():void;
+  exitPointerLock():void;
 }
 
 export interface VulkanWindow {
@@ -236,4 +242,7 @@ export interface VulkanWindow {
   onmousedown: ((ev: MousedownEvent) => any) | null;
   onmouseup: ((ev: MouseupEvent) => any) | null;
   ondrop: ((ev: DropEvent) => any) | null;
+
+  enterPointerLock():void;
+  exitPointerLock():void;
 }
