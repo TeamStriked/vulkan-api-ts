@@ -75610,6 +75610,9 @@ declare var VulkanWindow: {
   onmousedown: ((ev: MousedownEvent) => any) | null;
   onmouseup: ((ev: MouseupEvent) => any) | null;
   ondrop: ((ev: DropEvent) => any) | null;
+
+  enterPointerLock():void;
+  exitPointerLock():void;
 }
 
 export interface VulkanWindow {
@@ -75634,4 +75637,7 @@ export interface VulkanWindow {
   onmousedown: ((ev: MousedownEvent) => any) | null;
   onmouseup: ((ev: MouseupEvent) => any) | null;
   ondrop: ((ev: DropEvent) => any) | null;
+
+  enterPointerLock():void;
+  exitPointerLock():void;
 }
